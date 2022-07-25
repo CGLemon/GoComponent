@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include "gtp.h"
 #include "game_state.h"
@@ -52,8 +53,11 @@ std::vector<std::string> GTP_COMMANDS_LIST = {
 void gtp_prcoess(GameState *main_game);
 std::string gtp_success(std::string response);
 std::string gtp_fail(std::string response);
+void gtp_hint();
 
-void gtp_loop() {
+void gtp_loop(bool hint) {
+    if (hint) gtp_hint();
+
     auto main_game = std::make_unique<GameState>();
     main_game->clear_board(9, 7.f);
 
@@ -80,14 +84,14 @@ void gtp_prcoess(GameState *main_game) {
         return;
     }
 
-    if (input.find("quit") == 0) {
+    if (input == "quit") {
         std::cout << gtp_success(std::string{});
-        exit(-1);
-    } else if (input.find("protocol_version") == 0) {
+        exit(EXIT_SUCCESS);
+    } else if (input == "protocol_version") {
         std::cout << gtp_success("2");
-    } else if (input.find("name") == 0) {
+    } else if (input == "name") {
         std::cout << gtp_success("Go Bot");
-    } else if (input.find("version") == 0) {
+    } else if (input == "version") {
         std::cout << gtp_success("0.1");
     } else if (input.find("boardsize") == 0) {
         if (argc >= 2) {
@@ -137,9 +141,14 @@ void gtp_prcoess(GameState *main_game) {
             } else if (vtx_str == "RESIGN" || vtx_str == "resign") {
                 vtx = Board::RESIGN;
             } else if (vtx_str.size() <= 3) {
-                int x = vtx_str[0] - 'a';
+                char start = 'A'; // 65
+                if (vtx_str[0] >= 'a') {
+                    start = 'a'; // 97
+                }
+
+                int x = vtx_str[0] - start;
                 int y = std::stoi(vtx_str.substr(1)) - 1;
-                if (x >= 8) x--;
+                if (x >= 8) x--; // skip I
 
                 vtx = main_game->get_vertex(x,y);
             }
@@ -189,14 +198,13 @@ void gtp_prcoess(GameState *main_game) {
         float score = main_game->final_score();
         std::ostringstream result;
 
-        if (score > 0.001f) {
-            result << "b+" << score;
-        } else if (score < -0.001f) {
-            result << "w+" << -score;
-        } else {
+        if (std::abs(score) < 0.001f) {
             result << "draw";
-        } 
-
+        } else if (score > 0.f) {
+            result << "b+" << score;
+        } else if (score < 0.f) {
+            result << "w+" << -score;
+        }
         std::cout << gtp_success(result.str());
     } else if (input.find("help") == 0 ||
                    input.find("list_commands") == 0) {
@@ -233,4 +241,25 @@ std::string gtp_fail(std::string response) {
     out << prefix << response << suffix;
 
     return out.str();
+}
+
+void gtp_hint() {
+    std::cerr 
+        << "Start the main GTP loop. GTP is not for human. But you could\n"
+        << "still try to play the bot with it. Here are some tips.\n"
+        << "\n"
+        << "Enter \"list_commands\" to show whole supported commands.\n"
+        << "Enter \"showboard\"     to show the current board state.\n"
+        << "Enter \"play b d6\"     to place the black stone on the board at the E6.\n"
+        << "Enter \"play w f4\"     to place the white stone on the board at the F4.\n"
+        << "Enter \"genmove b\"     to genrate a random move and play it.\n"
+        << "Enter \"clear_board\"   to create a new game.\n"
+        << "Enter \"komi 7.5\"      to set the komi as 7.5.\n"
+        << "Enter \"boardsize 13\"  to set the board size as 13 and create a new game.\n"
+        << "Enter \"help\"          to show all commands.\n"
+        << "Enter \"quit\"          to end the program.\n"
+        << "\n"
+        << "If you want to know the more details, see here: https://www.gnu.org/software/gnugo/gnugo_19.html.\n"
+        << "\n"
+    ;
 }

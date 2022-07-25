@@ -2,7 +2,7 @@
 
 int main(int argc, char ** argv) {
 
-    gtp_loop();
+    gtp_loop(true);
 
     return 0;
 }

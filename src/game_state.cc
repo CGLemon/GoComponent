@@ -24,7 +24,7 @@ bool GameState::play_move(int vtx, int color) {
 }
 
 void GameState::undo_move() {
-    if (m_movenum == 0) return;
+    if (m_movenum <= 0) return;
 
     m_game_history.resize(m_movenum--);
     board = *m_game_history[m_movenum];
@@ -87,11 +87,13 @@ void GameState::showboard() {
     std::string color_map[4] = {"black", "white", "empty", "invalid"};
 
     std::cerr << board.to_string();
-    std::cerr << std::endl;
-    std::cerr << "to move: " << color_map[get_tomove()] << std::endl;
-    std::cerr << "komi: " << m_komi
-                  << " | move number: " << m_movenum << std::endl;
-    std::cerr << "hash: " << std::hex << board.compute_hash() << std::endl;
+    std::cerr << "{"
+                  "Next: " << color_map[get_tomove()] << ", "
+                  << "Komi: " << m_komi << ", "
+                  << "Moves: " << m_movenum 
+                  << "}"
+                  << std::endl;
+    std::cerr << "Hash: " << std::hex << board.compute_hash() << std::endl;
 }
 
 int GameState::get_state(int vtx) const {

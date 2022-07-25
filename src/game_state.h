@@ -64,7 +64,8 @@ public:
     // Get the game komi.
     float get_komi() const;
 
-    // Get the current board state on the vertex position.
+    // Get the current board state(black/white/empty) by the vertex 
+    // position.
     int get_state(int vtx) const;
 
     // Set the game komi.
