@@ -4,9 +4,11 @@
 
 # 編譯
 
+需要支援 C++11 或以上的編譯器
+
     git clone https://github.com/CGLemon/GoComponent
     cd GoComponent
-    g++ -o bot src/*.cc
+    g++ src/*.cc -o bot -std=c++11
 
 # 測試
 

@@ -9,6 +9,8 @@
 #include "game_state.h"
 #include "board.h"
 
+static int command_id;
+
 std::vector<std::string> GTP_COMMANDS_LIST = {
     // Part of GTP version 2 standard command
     "protocol_version",
@@ -58,7 +60,7 @@ void gtp_hint();
 void gtp_loop(bool hint) {
     if (hint) gtp_hint();
 
-    auto main_game = std::make_unique<GameState>();
+    auto main_game = std::make_shared<GameState>();
     main_game->clear_board(9, 7.f);
 
     for (;;) {
@@ -67,33 +69,53 @@ void gtp_loop(bool hint) {
 }
 
 void gtp_prcoess(GameState *main_game) {
-    std::string input;
-    if (!std::getline(std::cin, input)) {
+    std::string inputs;
+    if (!std::getline(std::cin, inputs)) {
         return;
     }
 
-    std::istringstream ss{input};
+    std::istringstream ss{inputs};
     std::string buf;
     std::vector<std::string> args;
+
     while (ss >> buf) {
         args.emplace_back(buf);
     }
+
+    if (args.empty()) {
+        return;
+    }
+
+    // check the command id here
+    command_id = -1;
+    auto toke_str = args[0];
+    bool is_digit = true;
+
+    for (char c : toke_str) {
+        is_digit &= isdigit(c);
+    }
+    if (is_digit) {
+        command_id = std::stoi(toke_str);
+        args.erase(std::begin(args)); // remove command id
+    }
+
     const size_t argc = args.size();
+    const auto main_cmd = args[0];
 
     if (argc == 0) {
         return;
     }
 
-    if (input == "quit") {
+    if (main_cmd == "quit") {
         std::cout << gtp_success(std::string{});
         exit(EXIT_SUCCESS);
-    } else if (input == "protocol_version") {
+    } else if (main_cmd == "protocol_version") {
         std::cout << gtp_success("2");
-    } else if (input == "name") {
+    } else if (main_cmd == "name") {
         std::cout << gtp_success("Go Bot");
-    } else if (input == "version") {
+    } else if (main_cmd == "version") {
         std::cout << gtp_success("0.1");
-    } else if (input.find("boardsize") == 0) {
+    } else if (main_cmd == "boardsize") {
         if (argc >= 2) {
             int bsize = std::stoi(args[1]);
             float komi = main_game->get_komi();
@@ -103,7 +125,7 @@ void gtp_prcoess(GameState *main_game) {
         } else {
             std::cout << gtp_fail(std::string{});
         }
-    } else if (input.find("komi") == 0) {
+    } else if (main_cmd == "komi") {
         if (argc >= 2) {
             float komi = std::stof(args[1]);
             main_game->set_komi(komi);
@@ -112,16 +134,16 @@ void gtp_prcoess(GameState *main_game) {
         } else {
             std::cout << gtp_fail(std::string{});
         }
-    } else if (input.find("clear_board") == 0) {
+    } else if (main_cmd == "clear_board") {
         int bsize = main_game->get_board_size();
         float komi = main_game->get_komi();
         main_game->clear_board(bsize, komi);
 
         std::cout << gtp_success(std::string{});
-    }  else if (input.find("undo") == 0) {
+    }  else if (main_cmd == "undo") {
         main_game->undo_move();
         std::cout << gtp_success(std::string{});
-    } else if (input.find("play") == 0) {
+    } else if (main_cmd == "play") {
         int color = Board::INVLD;
         int vtx = Board::NULL_VERTEX;
 
@@ -161,8 +183,8 @@ void gtp_prcoess(GameState *main_game) {
         } else {
             std::cout << gtp_fail(std::string{});
         }
-    } else if (input.find("genmove") == 0) {
-        // TODO: You should implement your move generator.
+    } else if (main_cmd == "genmove") {
+        // TODO: You should implement your move generator here.
 
         int color = main_game->get_tomove();
         if (argc >= 2) {
@@ -191,10 +213,10 @@ void gtp_prcoess(GameState *main_game) {
         }
 
         std::cout << gtp_success(out);
-    } else if (input.find("showboard") == 0) {
+    } else if (main_cmd == "showboard") {
         main_game->showboard();
         std::cout << gtp_success(std::string{});
-    } else if (input.find("final_score") == 0) {
+    } else if (main_cmd == "final_score") {
         float score = main_game->final_score();
         std::ostringstream result;
 
@@ -206,8 +228,8 @@ void gtp_prcoess(GameState *main_game) {
             result << "w+" << -score;
         }
         std::cout << gtp_success(result.str());
-    } else if (input.find("help") == 0 ||
-                   input.find("list_commands") == 0) {
+    } else if (main_cmd == "help" ||
+                   main_cmd == "list_commands") {
         auto list_commands = std::ostringstream{};
         auto idx = size_t{0};
 
@@ -225,28 +247,28 @@ void gtp_prcoess(GameState *main_game) {
 
 std::string gtp_success(std::string response) {
     auto out = std::ostringstream{};
-    auto prefix = std::string{"= "};
-    auto suffix = std::string{"\n\n"};
 
-    out << prefix << response << suffix;
+    if (command_id >= 0) {
+        out << '=' << command_id << ' ' << response << "\n\n";
+    } else {
+        out << '='               << ' ' << response << "\n\n";
+    }
 
     return out.str();
 }
 
 std::string gtp_fail(std::string response) {
     auto out = std::ostringstream{};
-    auto prefix = std::string{"? "};
-    auto suffix = std::string{"\n\n"};
 
-    out << prefix << response << suffix;
+    out << "? " << response << "\n\n";
 
     return out.str();
 }
 
 void gtp_hint() {
     std::cerr 
-        << "Start the main GTP loop. GTP is not for human. But you could\n"
-        << "still try to play the bot with it. Here are some tips.\n"
+        << "Start to running the main GTP loop. GTP is not for human. But you\n"
+        << "could still try to play the bot with it. Here are some tips.\n"
         << "\n"
         << "Enter \"list_commands\" to show whole supported commands.\n"
         << "Enter \"showboard\"     to show the current board state.\n"
