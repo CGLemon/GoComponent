@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 
 #include "gtp.h"
 #include "game_state.h"
@@ -149,18 +150,21 @@ void gtp_prcoess(GameState *main_game) {
 
         if (argc >= 2) {
             auto color_str = args[1];
-            if (color_str == "B" || color_str == "b" || color_str == "black") {
+            if (std::tolower(color_str[0]) == 'b') {
                 color = Board::BLACK;
-            } else if (color_str == "W" || color_str == "w" || color_str == "white") {
+            } else if (std::tolower(color_str[0]) == 'w') {
                 color = Board::WHITE;
             }
         }
 
         if (argc >= 3) {
             auto vtx_str = args[2];
-            if (vtx_str == "PASS" || vtx_str == "pass") {
+            for (char &v : vtx_str) {
+                v = std::tolower(v);
+            }
+            if (vtx_str == "pass") {
                 vtx = Board::PASS;
-            } else if (vtx_str == "RESIGN" || vtx_str == "resign") {
+            } else if (vtx_str == "resign") {
                 vtx = Board::RESIGN;
             } else if (vtx_str.size() <= 3) {
                 char start = 'A'; // 65
@@ -189,9 +193,9 @@ void gtp_prcoess(GameState *main_game) {
         int color = main_game->get_tomove();
         if (argc >= 2) {
             auto color_str = args[1];
-            if (color_str == "B" || color_str == "b" || color_str == "black") {
+            if (std::tolower(color_str[0]) == 'b') {
                 color = Board::BLACK;
-            } else if (color_str == "W" || color_str == "w" || color_str == "white") {
+            } else if (std::tolower(color_str[0]) == 'w') {
                 color = Board::WHITE;
             }
         }

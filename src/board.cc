@@ -347,7 +347,7 @@ std::uint64_t Board::compute_hash() const {
     str.resize(NUM_VERTICES, state_map[INVLD]);
 
     for (int vtx = 0; vtx < NUM_VERTICES; ++vtx) {
-        str[m_state[state_map[vtx]]];
+        str[vtx] = state_map[m_state[vtx]];
     }
 
     return std::hash<std::string>{}(str);
