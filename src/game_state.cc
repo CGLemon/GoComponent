@@ -15,11 +15,11 @@ bool GameState::play_move(int vtx, int color) {
     if (!board.legal_move(vtx, color)) {
         return false;
     }
-
-    board.play_move_assume_legal(vtx, color);
-    m_game_history.resize(++m_movenum);
-    m_game_history.emplace_back(std::make_shared<Board>(board));
-
+    if (vtx != Board::RESIGN) {
+        board.play_move_assume_legal(vtx, color);
+        m_game_history.resize(++m_movenum);
+        m_game_history.emplace_back(std::make_shared<Board>(board));
+    }
     return true;
 }
 
